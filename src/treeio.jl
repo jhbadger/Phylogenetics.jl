@@ -1,3 +1,6 @@
+## Functions and utilities for reading in trees from newick strings and outputting arrays of either Clado or Phylo ##
+
+# readtree - the primary function for reading in trees in the available formats.
 # Read in a set of trees from a file
 # Returns an array of trees
 function readtree(filepath::ASCIIString, format="nwk")
@@ -19,45 +22,46 @@ function readtree(filepath::ASCIIString, format="nwk")
 end
 
 
-
-# Sub function for creation of a Clado structs from newick format strings.
 # Used to build Clado structs from newick strings during operation of the
 # readtree function.
 function cladobuild(tp::ASCIIString)
+	# AddInternal - used to add an internal node to the tree.
 	function AddInternal(edge, currentNode, node, index, j)
-		edge[j, 1] = currentNode
-		node += 1
-		edge[j, 2] = currentNode = node
-		index[node] = j
-		j += 1
+		edge[j, 1] = currentNode 			# Assigns the currentNode to the edge array, at the j'th row and the first column.
+		node += 1 							# Increaces the node variable by 1.
+		edge[j, 2] = currentNode = node 	# Assigns to the edge array, at the j'th row and 2nd column, the increaced node value. 
+		index[node] = j 					# Assigns to the index array at the node'th element, the j variables.
+		j += 1 								# Increaces the j variable.
 		return currentNode, node, j
 	end
+	# AddTerminal - used to add a terminal node to the tree.
 	function AddTerminal(edge, currentNode, tip, index, tipLabel, tpc, k, j)
-		edge[j, 1] = currentNode
-		edge[j, 2] = tip
-		index[tip] = j
-		tipLabel[tip] = tpc[k]
-		k += 1
+		edge[j, 1] = currentNode 	# Make the j'th row and first column of edge array the current node.
+		edge[j, 2] = tip 			# Make the j'th row and second column of the edge array the tip variable.
+		index[tip] = j 				# Make the tip'th element of the index array j.
+		tipLabel[tip] = tpc[k] 		# Make the tip'th element of the tip labels array the kth element of tpc.
+		k += 1 						# Increace k, tip, and j.
 		tip += 1
 		j += 1
 		return currentNode, tip, k, j
 	end
+	# GoDown - used to go down...
 	function GoDown(index, currentNode, nodeLabel, nbTip, tpc, k, edge)
-		l = index[currentNode]
-		nodeLabel[currentNode - nbTip] = tpc[k]
-		k += 1
-		currentNode = edge[l, 1]
+		l = index[currentNode] 								# Set variable l to the value of the currentNode'th index value. 
+		nodeLabel[currentNode - nbTip] = tpc[k] 			# Set the nodeLabel to tpc[k] to get the node label.
+		k += 1 												# Increase k by 1.
+		currentNode = edge[l, 1] 							# Set current node to edge[l, 1], basically moving back to the previous node.
 		return k, currentNode
 	end
-	tp = "$tp;"
-	if ismatch(r"^[^\(]+\(", tp)
-		cutoff = length(match(r"^[^\(]+\(", tp).match)
-		treeName = chop(match(r"^[^\(]+\(", tp).match)
-		treeName = treeName[length(treeName)] == ' ' ? treeName[1:length(treeName)-1] : treeName
+	tp = "$tp;"												# Add a semi colon to the tree string fed in.
+	if ismatch(r"^[^\(]+\(", tp)							# Detect if the tree read in has a name.
+		cutoff = length(match(r"^[^\(]+\(", tp).match)		# Get the character at which the tree starts.
+		treeName = chop(match(r"^[^\(]+\(", tp).match)		# Get the tree name.
+		treeName = treeName[length(treeName)] == ' ' ? treeName[1:length(treeName)-1] : treeName 	# Make sure the name does not have trailing spaces.
 		tp = tp[cutoff:length(tp)]
 	else treeName = ""
 	end
-	if search(tp, ",") == 0:-1
+	if search(tp, ",") == 0:-1 		# If the tree contains no commas, just build the tree it obviously is and skip the more complex build process.
 		edge = Array(Int, 2,2)
 		edge[1,1:2] = [2,1]
 		edge[2,1:2] = [1,2]
@@ -71,32 +75,32 @@ function cladobuild(tp::ASCIIString)
 		phyloobject = Phylo(edge, Nnode, tipLabel, edgeLength, nodeLabel, -1.0)
 		return phyloobject
 	end
-	tsp = split(tp, "")
-	tp = replace(tp, r"\s", "")
-	tp = replace(tp, ")", ")NA")
-	tp = replace(tp, "(", "rem(")
-	tpc = split(tp, r"[\\(\\),;]")
-	tpc = tpc[1:length(tpc)-1]
-	tpc = tpc[tpc .!= "rem"]
+	tsp = split(tp, "")		# Split the input string up into an array.
+	tp = replace(tp, r"\s", "")		# Make sure to remove any spaces.
+	tp = replace(tp, ")", ")NA")	# Make any closing brackets change from ")" to ")NA" so as to handle missing clade names/labels.
+	tp = replace(tp, "(", "rem(")	# Make any opening brackets cange from "(" to "rem("
+	tpc = split(tp, r"[\\(\\),;]")	# Get the characters from the input tree and put them in an array.
+	tpc = tpc[1:length(tpc)-1]		
+	tpc = tpc[tpc .!= "rem"]		# Get rid of the characters in the array that say "rem" or "remove".
 	skeleton = tsp[bool([i == "(" || i == ")" || i == "," || i == ";" for i in tsp])]
-	nsk = length(skeleton) # Length of the nexus skeleton.
-	nbNode = sum(skeleton .== ")")
-	nbTip = sum(skeleton .== ",") + 1
-	nbEdge = nbNode + nbTip # Number of edges for tree is number of tips and nodes.
-	nodeLabel = ["" for i in 1:nbNode]
+	nsk = length(skeleton)				# Length of the nexus skeleton.
+	nbNode = sum(skeleton .== ")")		# Get the number of internal nodes as represented by closing brackets in the skeleton: ")". 
+	nbTip = sum(skeleton .== ",") + 1 	# Get the number of tips in the tree, given by the number of commas "," + 1.
+	nbEdge = nbNode + nbTip 			# Get the number of edges for tree is number of tips and nodes.
+	nodeLabel = ["" for i in 1:nbNode]	# Generate an array to contain node labels and also to contain tip labels.
 	tipLabel = ["" for i in 1:nbTip]
-	edge = Array(Int, nbEdge,2)
-	currentNode = node = nbTip + 1
-	edge[nbEdge, 1] = 0
+	edge = Array(Int, nbEdge,2)			# Make an array called edge to contain the relationships between nodes.
+	currentNode = node = nbTip + 1 		# Start variables that track position in the tree, it starts a the number of tips + 1. (Recall ape tree structure, nodes are all numbers higher than the number of tips.)
+	edge[nbEdge, 1] = 0					# Fill in the root to the edge matrix and it's relationship to the starting node.
 	edge[nbEdge, 2] = node
-	index = [0 for i in 1:nbEdge+1]
-	index[node] = nbEdge
-	j = k = tip = 1
-	for i in 2:nsk
-		if skeleton[i] == "("
+	index = [0 for i in 1:nbEdge+1]		# Create an array called index, it's job is to track which row of the edge matrix a given node is represented by.
+	index[node] = nbEdge 				# Make the node'th element of the index array, the nbEdge variable - the number of edges.
+	j = k = tip = 1 					# Make j = k = tip = 1.
+	for i in 2:nsk 						# Start a loop for all in 2 to the length of the tree skeleton to loop over the skeleton symbols.
+		if skeleton[i] == "("			# If the current skeleton symbol = "(", use the function AddInternal.
 			currentNode, node, j = AddInternal(edge, currentNode, node, index, j)
 		end
-		if skeleton[i] == "," && skeleton[i-1] != ")"
+		if skeleton[i] == "," && skeleton[i-1] != ")" 		# If the current skeleton symbol = "," and the previous is not ")", use the function AddTerminal.
 			currentNode, tip, k, j = AddTerminal(edge, currentNode, tip, index, tipLabel, tpc, k, j)
 		end
 		if skeleton[i] == ")"
@@ -109,9 +113,9 @@ function cladobuild(tp::ASCIIString)
 			end
 		end
 	end
-	edge = edge[1:nbEdge-1, 1:2]
+	edge = edge[1:nbEdge-1, 1:2] 		# Take the final unnessecery row in the edge array off.
         for i in 1:length(nodeLabel)
-            nodeLabel[i] = replace(nodeLabel[i],r"^NA","")
+            nodeLabel[i] = replace(nodeLabel[i],r"^NA","")  	# Make sure any node-labels missing are properly dealt with.
         end
 	phyloobject = Clado(treeName, edge, nbNode, tipLabel, nodeLabel)
 	return phyloobject
