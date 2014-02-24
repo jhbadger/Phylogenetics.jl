@@ -1,0 +1,6 @@
+No Labels Phylogram (:0.1,:0.2,(:0.3,:0.4):0.5);
+Tip Label Cladogram (A,B,(C,D));
+No Labels and Nodes Phylogram (:0.1,:0.2,(:0.3,:0.4):0.5):0.0;
+Phylogram with Tip Labels (A:0.1,B:0.2,(C:0.3,D:0.4):0.5);
+Tip and Node Labels Cladogram (A,B,(C,D)E)F;
+Phylogram with Nodelabels(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;
