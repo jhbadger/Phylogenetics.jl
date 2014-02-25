@@ -37,7 +37,7 @@ type Sequence
 	Annotations::Array{String}
 end
 
-type TestClade
+type PhyXClade
 	name::ASCIIString
 	taxonomy::Taxonomy
 	sequences::Array{Sequence}
@@ -131,7 +131,7 @@ function recursiveBuild(xmlclade, cladeArray, currentClade, parentClade::Int)
 	sequences = Sequences(xmlclade)
 	children = get_elements_by_tagname(xmlclade, "clade")
 	# Build the clade element.
-	cladeArray[currentClade.nodeIndex] = TestClade(name, taxonomy, sequences, parentClade)
+	cladeArray[currentClade.nodeIndex] = PhyXClade(name, taxonomy, sequences, parentClade)
 	for i in children
 		recursiveBuild(i, cladeArray, currentClade, current)
 	end

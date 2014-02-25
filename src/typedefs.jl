@@ -72,3 +72,119 @@ function hash{T<:Phylogeny}(p::T)
     end
     return h
 end
+
+# Definitions relating to the PhyXClade class, it's construction and structures based on it.
+
+# Nodetracker is nessecery in the building of PhyXClade based trees because an incremental values was needed that could be passed by sharing.
+type nodeTracker
+	nodeIndex::Int
+end
+
+# ID contains ID information, both the code and the provider of the ID. It is nexted in the Taxonomy class.
+type ID
+	provider::String
+	identifier::String
+end
+
+# The Taxonomy class contains the Taxonomy information for a clade. Tis includes IDs provided by various providers, codes, and Scientific Names.
+type Taxonomy
+	IDs::Array{ID}
+	Code::String
+	ScientificName::String
+end
+
+type Accession
+	Source::String
+	AccessionNumber::String
+end
+
+
+type Sequence
+	Symbol::String
+	Accession::Accession
+	Name::String
+	MolecularSequence::String
+	Annotations::Array{String}
+end
+
+type PhyXClade
+	name::ASCIIString
+	taxonomy::Taxonomy
+	sequences::Array{Sequence}
+	parent::Int
+end
+
+
+function Taxonomy(xml::XMLElement)
+	taxxml = get_elements_by_tagname(xml, "taxonomy")
+	if !isempty(taxxml)
+		idxml = get_elements_by_tagname(taxxml[1], "id")
+		if !isempty(idxml)
+			idarray = [ID(attribute(i, "provider"; required=false), content(i)) for i in idxml]
+		else
+			idarray = Array(ID, 0)
+		end
+		code = get_elements_by_tagname(taxxml[1], "code")
+		if !isempty(code)
+			codeval = content(code[1])
+		else
+			codeval = ""
+		end
+		sciname = get_elements_by_tagname(taxxml[1], "scientific_name")
+		if !isempty(sciname)
+			name = content(sciname[1])
+		else
+			name = ""
+		end
+		return Taxonomy(idarray, codeval, name)
+	else
+		return Taxonomy(Array(ID, 0), "", "")
+	end
+end
+
+
+function Sequences(xml::XMLElement)
+	seqxml = get_elements_by_tagname(xml, "sequence")
+	if !isempty(seqxml)
+		outsequences = Array(Sequence, length(seqxml))
+		for n in 1:length(seqxml)
+			symbolxml = get_elements_by_tagname(seqxml[1], "symbol")
+			if !isempty(symbolxml)
+				symbol = content(symbolxml[1])
+			else
+				symbol = ""
+			end
+			accessionxml = get_elements_by_tagname(seqxml[1], "accession")
+			if !isempty(accessionxml)
+				accession = Accession(attribute(accessionxml[1], "source", required=false),content(accessionxml[1]))
+			else
+				accession = Accession("","")
+			end
+			name = get_elements_by_tagname(seqxml[1], "name")
+			if !isempty(name)
+				name = content(name[1])
+			else
+				name = ""
+			end
+			molseqxml = get_elements_by_tagname(seqxml[1], "mol_seq")
+			if !isempty(molseqxml)
+				sequence = content(molseqxml[1])
+			else
+				sequence = ""
+			end
+			annotationsxml = get_elements_by_tagname(seqxml[1], "annotation")
+			if !isempty(annotationsxml)
+				annotations = [attribute(i, "ref", required=false) for i in annotationsxml]
+			else
+				annotations = Array(String, 0)
+			end
+			outsequences[n] = Sequence(symbol, accession, name, sequence, annotations)
+		end
+		return outsequences
+	else
+		return Array(Sequence, 0)
+	end
+end
+
+
+

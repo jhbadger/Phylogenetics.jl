@@ -1,6 +1,7 @@
 module Phylogenetics
 	## Dependencies
 	using Base.Intrinsics
+	using LightXML
 	importall Base
 
 	## Exported Methods and Types
