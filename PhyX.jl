@@ -12,8 +12,20 @@ type nodeTracker
 	nodeIndex::Int
 end
 
+type ID
+	provider::String
+	identifier::String
+end
+
+type Taxonomy
+	IDs::Array{ID}
+	Code::String
+	ScientificName::String
+end
+
 type TestClade
 	name::ASCIIString
+	taxonomy::Taxonomy
 	parent::Int
 end
 
@@ -49,19 +61,57 @@ end
 function recursiveBuild(xmlclade, cladeArray, currentClade, parentClade::Int)
 	# Update the node tracker.
 	currentClade.nodeIndex += 1
-	current = currentClade.nodeIndex # initialize a loca variable called current, taken from the currentClade variable to keep as the variable to pass to furthur recursive calls as the parent index.
+	current = currentClade.nodeIndex # Initialize a local variable called current, taken from the currentClade variable to keep as the variable to pass to furthur recursive calls as the parent index.
 	# Get name of clade element.
 	name = ""
 	# Get and process all additional data.... TODO
+	# Process taxonomy...
+	taxonomy = Taxonomy(xmlclade)
 	children = get_elements_by_tagname(xmlclade, "clade")
 	# Build the clade element.
-	cladeArray[currentClade.nodeIndex] = TestClade(name, parentClade)
+	cladeArray[currentClade.nodeIndex] = TestClade(name, taxonomy, parentClade)
 	for i in children
 		recursiveBuild(i, cladeArray, currentClade, current)
 	end
 end
 
 
+function Taxonomy(xml::XMLElement)
+	taxxml = get_elements_by_tagname(xml, "taxonomy")
+	if !isempty(taxxml)
+		idxml = get_elements_by_tagname(taxxml[1], "id")
+		if !isempty(idxml)
+			idarray = [ID(attribute(i, "provider"; required=false), content(i)) for i in idxml]
+		else
+			idarray = Array(ID, 0)
+		end
+		code = get_elements_by_tagname(taxxml[1], "code")
+		if !isempty(code)
+			codeval = content(code[1])
+		else
+			codeval = ""
+		end
+		sciname = get_elements_by_tagname(taxxml[1], "scientific_name")
+		if !isempty(sciname)
+			name = content(sciname[1])
+		else
+			name = ""
+		end
+		return Taxonomy(idarray, codeval, name)
+	else
+		return Taxonomy(Array(ID, 0), "", "")
+	end
+end
+
+
+
+
+
+
+
+
+
+	
 
 
 
