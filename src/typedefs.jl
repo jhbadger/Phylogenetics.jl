@@ -53,28 +53,7 @@ function ReducedTopology(phy::Array{Phylogeny})
 	return outarray
 end
 
-
-# equality, etc.
-
-function isequal{T<:Phylogeny}(p1::T,p2::T)
-    for field in names(T)
-        if !isequal(getfield(p1,field),getfield(p2,field))
-            return false
-        end
-    end
-    return true
-end
-
-function hash{T<:Phylogeny}(p::T)
-    h = 0
-    for field in names(T)
-        h = bitmix(hash(getfield(p,field)),h)
-    end
-    return h
-end
-
 # Definitions relating to the PhyXClade class, it's construction and structures based on it.
-
 # Nodetracker is nessecery in the building of PhyXClade based trees because an incremental values was needed that could be passed by sharing.
 type nodeTracker
 	nodeIndex::Int
@@ -98,7 +77,6 @@ type Accession
 	AccessionNumber::String
 end
 
-
 type Sequence
 	Symbol::String
 	Accession::Accession
@@ -107,13 +85,23 @@ type Sequence
 	Annotations::Array{String}
 end
 
-type PhyXClade
-	name::ASCIIString
-	taxonomy::Taxonomy
-	sequences::Array{Sequence}
-	parent::Int
+name(x::PhyXElement) = return x.name 
+taxonomy(x::PhyXElement) = return x.taxonomy
+sequences(x::PhyXElement) = return x.sequences
+is_root(x::PhyXElement) = return x.root
+is_tip(x::PhyXElement) = return x.tip
+parent(x::PhyXElement) = return x.parent
+
+type PhyXTree
+	name::String
+	phyxNodes::Array{PhyXElement}
 end
 
+tipLabels(x::PhyXTree) = map(name, x.phyxNodes[map(is_tip(x.phyxNodes))])
+cladeLabels(x::PhyXTree) = map(name, x.phyxNodes[map(!is_tip(x.phyxNodes))])
+elementLabels(x::PhyXTree) = map(name, x.phyxNodes)
+tips(x::PhyXTree) = return findin(map(is_tip, x.phyxNodes), true)
+clades(x::PhyXTree) = return findin(map(is_tip, x.phyxNodes), false)
 
 function Taxonomy(xml::XMLElement)
 	taxxml = get_elements_by_tagname(xml, "taxonomy")
@@ -187,4 +175,18 @@ function Sequences(xml::XMLElement)
 end
 
 
+# Macro to define the type of PhyXElement at compile time, depending on the information it will have to contain.
+macro PhyXPopulate(attributes...)
+	code = :(begin end)
+	push!(code.args, :($(symbol("Label"))::String))
+	push!(code.args, :($(symbol("Root"))::Bool))
+	push!(code.args, :($(symbol("Tip"))::Bool))
+	push!(code.args, :($(symbol("Parent"))::Int))
+	for i in 1:length(attributes)
+		push!(code.args, :($(symbol("attr$(attributes[i])"))::$(attributes[i])))
+	end
+	eval(:(type PhyXElement
+		$code
+	end))
+end
 

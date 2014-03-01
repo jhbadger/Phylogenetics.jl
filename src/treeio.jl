@@ -294,8 +294,6 @@ function checklabels(labels)
 	return labels
 end
 
-
-
 # Function used by the functions which write newick trees.
 function cp(x, k, STRING)
 	STRING[k] = x
@@ -303,15 +301,11 @@ function cp(x, k, STRING)
 	return k, STRING
 end
 
-
-
 # Returns the internal node which is the root of the tree.
 function getroot(children, parents)
 	r = parents[[find(in(children, i)) == [1] ? false : true for i in parents]][1]
 	return r
 end
-
-
 
 # This function returns an array of arrays, showing which children
 # nodes have.
@@ -324,7 +318,6 @@ function getkids(phy::Phylogeny)
 	end
 	return kids
 end
-
 
 # Construct a newick string from a Cladogram
 function newick(phy::Clado, name::Bool)
@@ -394,7 +387,6 @@ function newick(phy::Clado, name::Bool)
 	end
 	return outstring
 end
-
 
 # Function that creates
 function newick(phy::Phylo, name::Bool)
@@ -473,7 +465,6 @@ function newick(phy::Phylo, name::Bool)
 	return outstring
 end
 
-
 # Macro for making a tree from a string.
 macro tr_str(s)
 	s = replace(s, r"(\r|\n|\s)", "")
@@ -488,7 +479,6 @@ macro tr_str(s)
 		return tree
 	end
 end
-
 
 # Functions that creates trees from PhyloXML files:
 function recursiveBuild(xmlclade, cladeArray, currentClade, parentClade::Int)
@@ -513,6 +503,7 @@ function phyXMLbuild(xmltree)
 	treestring = replace(string(xmltree), r"(\r|\n|\t)", "")
 	treestring = replace(treestring, r"(\s{2,})", "")
 	tstable = split(treestring, "><")
+
 	startclade = 0
 	endclade = 0
 	for i in tstable
@@ -525,11 +516,20 @@ function phyXMLbuild(xmltree)
 	end
 	startclade != endclade ? println("Warning! There are unequal numbers of clade begins and clade ends in this tree") : println("Current tree has $startclade clade nodes")
 	# Ok the number of nodes has been established.
-
-	Clade = Array(TestClade, startclade)		# Make an array to contain the Clade elements.
+	Clade = Array(PhyXElement, startclade)		# Make an array to contain the Clade elements.
 	BackTrack = zeros(Int, startclade)			# Make an array which tracks the parent of a Clade, to allow backtracking.
 	Current = nodeTracker(0)                    # Start the nodetracker type.
 	BackTrack[1] = 0
 	XML = get_elements_by_tagname(xmltree, "clade")[1]
 	recursiveBuild(XML, Clade, Current, 0)
+	# Now all of the Clade array should be largely built.
+	return PhyXTree()
 end
+
+
+
+
+
+
+
+
