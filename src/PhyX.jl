@@ -8,6 +8,61 @@ phylogenies = get_elements_by_tagname(root(treedoc), "phylogeny")
 
 xmltree = phylogenies[1]
 
+type PhyXElement
+	name::ASCIIString
+	parent::Int
+end
+
+type PhyXTree
+	name::String
+	nodes::Array{PhyXElement}
+	isRooted::Bool
+end
+
+
+function phyXMLbuild(xmltree)
+	treestring = replace(string(xmltree), r"(\r|\n|\t)", "")
+	treestring = replace(treestring, r"(\s{2,})", "")
+	tstable = split(treestring, "><")
+	startclade = 0
+	endclade = 0
+	for i in tstable
+		if i == "clade"
+			startclade += 1
+		end
+		if i == "/clade"
+			endclade += 1
+		end
+	end
+	startclade != endclade ? println("Warning! There are unequal numbers of clade begins and clade ends in this tree") : println("Current tree has $startclade clade nodes")
+	# Ok the number of nodes has been established.
+	Clade = Array(TestClade, startclade)		# Make an array to contain the Clade elements.
+	BackTrack = zeros(Int, startclade)			# Make an array which tracks the parent of a Clade, to allow backtracking.
+	Current = nodeTracker(0)                    # Start the nodetracker type.
+	BackTrack[1] = 0
+	XML = get_elements_by_tagname(xmltree, "clade")[1]
+	recursiveBuild(XML, Clade, Current, 0)
+end
+
+function recursiveBuild(xmlclade, cladeArray, currentClade, parentClade::Int)
+	# Update the node tracker.
+	currentClade.nodeIndex += 1
+	current = currentClade.nodeIndex # Initialize a local variable called current, taken from the currentClade variable to keep as the variable to pass to furthur recursive calls as the parent index.
+	# Get name of clade element.
+	name = ""
+	# Get and process all additional data.... TODO
+	# Process taxonomy...
+	taxonomy = Taxonomy(xmlclade)
+	sequences = Sequences(xmlclade)
+	children = get_elements_by_tagname(xmlclade, "clade")
+	# Build the clade element.
+	cladeArray[currentClade.nodeIndex] = PhyXClade(name, taxonomy, sequences, parentClade)
+	for i in children
+		recursiveBuild(i, cladeArray, currentClade, current)
+	end
+end
+
+
 type nodeTracker
 	nodeIndex::Int
 end
@@ -37,12 +92,10 @@ type Sequence
 	Annotations::Array{String}
 end
 
-type PhyXClade
-	name::ASCIIString
-	taxonomy::Taxonomy
-	sequences::Array{Sequence}
-	parent::Int
-end
+taxonomy::Taxonomy
+sequences::Array{Sequence}
+
+
 
 
 function Sequences(xml::XMLElement)
@@ -92,50 +145,7 @@ end
 
 
 
-function phyXMLbuild(xmltree)
-	treestring = replace(string(xmltree), r"(\r|\n|\t)", "")
-	treestring = replace(treestring, r"(\s{2,})", "")
-	tstable = split(treestring, "><")
-	startclade = 0
-	endclade = 0
-	for i in tstable
-		if i == "clade"
-			startclade += 1
-		end
-		if i == "/clade"
-			endclade += 1
-		end
-	end
-	startclade != endclade ? println("Warning! There are unequal numbers of clade begins and clade ends in this tree") : println("Current tree has $startclade clade nodes")
-	# Ok the number of nodes has been established.
 
-	Clade = Array(TestClade, startclade)		# Make an array to contain the Clade elements.
-	BackTrack = zeros(Int, startclade)			# Make an array which tracks the parent of a Clade, to allow backtracking.
-	Current = nodeTracker(0)                    # Start the nodetracker type.
-	BackTrack[1] = 0
-	XML = get_elements_by_tagname(xmltree, "clade")[1]
-	recursiveBuild(XML, Clade, Current, 0)
-end
-
-
-
-function recursiveBuild(xmlclade, cladeArray, currentClade, parentClade::Int)
-	# Update the node tracker.
-	currentClade.nodeIndex += 1
-	current = currentClade.nodeIndex # Initialize a local variable called current, taken from the currentClade variable to keep as the variable to pass to furthur recursive calls as the parent index.
-	# Get name of clade element.
-	name = ""
-	# Get and process all additional data.... TODO
-	# Process taxonomy...
-	taxonomy = Taxonomy(xmlclade)
-	sequences = Sequences(xmlclade)
-	children = get_elements_by_tagname(xmlclade, "clade")
-	# Build the clade element.
-	cladeArray[currentClade.nodeIndex] = PhyXClade(name, taxonomy, sequences, parentClade)
-	for i in children
-		recursiveBuild(i, cladeArray, currentClade, current)
-	end
-end
 
 
 function Taxonomy(xml::XMLElement)

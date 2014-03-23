@@ -30,8 +30,8 @@ using Phylogenetics # to use Phylogenetics
 # Features in Development / Requested
 
 * Support for reading in phyloXML files (in branch phyxml).
-  * A type for trees annotated with highly detailed information. 
-  * Methods for converting the planned type with already existing types Clado, Phylo, and ReducedTopology.
+* An extensible type for trees annotated with highly detailed information.
+* Methods for converting the planned type with already existing types Clado, Phylo, and ReducedTopology.
 		
 
 Contributing
