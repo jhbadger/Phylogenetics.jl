@@ -32,6 +32,14 @@ using Phylogenetics # to use Phylogenetics
 * Support for reading in phyloXML files (in branch phyxml).
 * An extensible type for trees annotated with highly detailed information.
 * Methods for converting the planned type with already existing types Clado, Phylo, and ReducedTopology.
+
+# Current work:
+
+* An extensible type for trees annotated with highly detailed information.
+* Support for PhyXML and NEWICK formats.
+* The phylodev folder in the phyxml branch contains several tree files I use to test stuff out and try things.
+* In the src folder, the file PhyX.jl contains in development code and my rough typings and attempts to get a firmer handle on the idea of the extensible data-rich tree type.
+
 		
 
 Contributing
